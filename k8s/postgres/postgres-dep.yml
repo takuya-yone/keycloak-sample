@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-auth
+type: Opaque
+stringData:
+  user: keycloak
+  password: keycloakpass
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-dep
+  template:
+    metadata:
+      labels:
+        app: postgres-dep
+    spec:
+      containers:
+      - name: postgres-dep
+        image: postgres
+        env:
+        - name: POSTGRES_DB
+          value: keycloak
+        - name: POSTGRES_USER
+          # value: keycloak
+          valueFrom:
+            secretKeyRef:
+              name: postgres-auth
+              key: user
+        - name: POSTGRES_PASSWORD
+          # value: keycloakpass
+          valueFrom:
+            secretKeyRef:
+              name: postgres-auth
+              key: password
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: pv-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: pv-data
+        persistentVolumeClaim:
+          claimName: postgres-pv-claim
